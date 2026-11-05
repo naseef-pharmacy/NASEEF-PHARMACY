@@ -511,5 +511,6 @@
         const obs=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';obs.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -50px 0px'});document.querySelectorAll('section > div').forEach(el=>{el.style.opacity='0';el.style.transform='translateY(30px)';el.style.transition='all 0.8s cubic-bezier(0.4,0,0.2,1)';obs.observe(el)});
         const sections=document.querySelectorAll('section[id]');const navLinks=document.querySelectorAll('nav a[href^="#"]');window.addEventListener('scroll',()=>{let cur='';sections.forEach(s=>{if(window.scrollY>=s.offsetTop-100)cur=s.id});navLinks.forEach(l=>{l.classList.remove('text-white');if(l.getAttribute('href')==='#'+cur)l.classList.add('text-white')})});
     </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body>
 </html>
