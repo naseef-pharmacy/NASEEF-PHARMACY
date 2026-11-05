@@ -512,5 +512,19 @@
         const sections=document.querySelectorAll('section[id]');const navLinks=document.querySelectorAll('nav a[href^="#"]');window.addEventListener('scroll',()=>{let cur='';sections.forEach(s=>{if(window.scrollY>=s.offsetTop-100)cur=s.id});navLinks.forEach(l=>{l.classList.remove('text-white');if(l.getAttribute('href')==='#'+cur)l.classList.add('text-white')})});
     </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+    const SUPABASE_URL = 'https://giowqrdcemqzbulaijtp.supabase.co';
+
+    const SUPABASE_KEY = 'sb_publishable_1FkKQASQ33Qj4CaW1QbLZA_WereIfj9';
+
+    const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+    console.log('NASEEF Pharmacy Supabase connected');
+</script>
+
 </body>
 </html>
