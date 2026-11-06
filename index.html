@@ -525,11 +525,9 @@
 
     console.log('NASEEF Pharmacy Supabase connected');
     async function loadNaseefProducts() {
-    const { data, error } = await supabaseClient
+   const { data, error } = await supabaseClient
     .from('products')
-    .select('*')
-    .eq('is_available', true);
-
+    .select('*');
     if (error) {
         console.error('Product loading error:', JSON.stringify(error, null, 2));
         return;
