@@ -290,6 +290,27 @@
             class="w-full bg-neutral-900 border border-white/10 rounded px-5 py-4 text-white mb-8"
         >
 
+        <!-- Pharmacy Branch Selection -->
+        <div class="mt-6 mb-6">
+            <label for="branch-select"
+                   class="block text-sm text-neutral-300 mb-2">
+                Choose Pharmacy Branch
+            </label>
+
+            <select id="branch-select"
+                    class="w-full bg-neutral-900 border border-white/10 rounded px-5 py-4 text-white">
+                <option value="NASEEF PHARMACY">NASEEF PHARMACY</option>
+                <option value="AL NABBA PHARMACY">AL NABBA PHARMACY</option>
+                <option value="AL SIHA W AL AFIYA PHARMACY">AL SIHA W AL AFIYA PHARMACY</option>
+            </select>
+        </div>
+
+        <!-- Available Products Filter -->
+        <label class="flex items-center gap-3 text-sm text-neutral-300 mb-6">
+            <input type="checkbox" id="available-only" class="w-4 h-4">
+            Show available products only
+        </label>
+
         <p id="product-count" class="text-sm text-neutral-400 mb-6">
             Loading products...
         </p>
