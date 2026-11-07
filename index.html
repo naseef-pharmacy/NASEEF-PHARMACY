@@ -576,25 +576,40 @@
 
     console.log('NASEEF Pharmacy Supabase connected');
     
+
 async function loadNaseefProducts() {
     const productList = document.getElementById('product-list');
     const productCount = document.getElementById('product-count');
     const searchInput = document.getElementById('product-search');
+    const branchSelect = document.getElementById('branch-select');
+    const availableOnly = document.getElementById('available-only');
 
     productList.innerHTML = '<p class="text-neutral-400">Loading products...</p>';
 
-    const { data, error } = await supabaseClient
+    const { data: products, error: productError } = await supabaseClient
         .from('products')
         .select('*');
 
-    if (error) {
-        console.error('Product loading error:', error);
+    if (productError) {
+        console.error('Product loading error:', productError);
         productCount.textContent = 'Unable to load products.';
         productList.innerHTML = '';
         return;
     }
 
-    console.log('NASEEF Products loaded:', data);
+    const { data: branchStocks, error: stockError } = await supabaseClient
+        .from('branch_stock')
+        .select('product_id, branch_name, quantity, is_available');
+
+    if (stockError) {
+        console.error('Branch stock loading error:', stockError);
+        productCount.textContent = 'Unable to load branch stock.';
+        productList.innerHTML = '';
+        return;
+    }
+
+    console.log('NASEEF Products loaded:', products);
+    console.log('NASEEF Branch stock loaded:', branchStocks);
 
     function safeText(value) {
         return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -607,30 +622,62 @@ async function loadNaseefProducts() {
     }
 
     function displayProducts(search = '') {
-        const filtered = data.filter(product => {
-            const name = product.name || product.product_name || '';
+        const selectedBranch = branchSelect.value;
+
+        const filtered = products.filter(product => {
+            const name = product.product_name || product.name || '';
             const category = product.category || '';
-            return (name + ' ' + category)
+
+            const stock = branchStocks.find(item =>
+                Number(item.product_id) === Number(product.id) &&
+                item.branch_name === selectedBranch
+            );
+
+            const inStock = stock &&
+                stock.is_available === true &&
+                Number(stock.quantity) > 0 &&
+                product.is_available !== false;
+
+            const matchesSearch = (name + ' ' + category)
                 .toLowerCase()
                 .includes(search.toLowerCase());
+
+            const matchesAvailability =
+                !availableOnly.checked || inStock;
+
+            return matchesSearch && matchesAvailability;
         });
 
         productCount.textContent =
-            'Showing ' + filtered.length + ' of ' + data.length + ' products';
+            'Showing ' + filtered.length + ' of ' +
+            products.length + ' products — ' + selectedBranch;
 
         if (filtered.length === 0) {
             productList.innerHTML =
-                '<p class="text-neutral-400">No matching products found.</p>';
+                '<p class="text-neutral-400">No matching available products found at this branch.</p>';
             return;
         }
 
         productList.innerHTML = filtered.map(product => {
-            const name = product.name || product.product_name || 'Unnamed product';
+            const name = product.product_name || product.name || 'Unnamed product';
             const price = product.price;
             const category = product.category || 'General';
-            const branches = Array.isArray(product.branches)
-                ? product.branches.join(', ')
-                : (product.branches || '');
+
+            const stock = branchStocks.find(item =>
+                Number(item.product_id) === Number(product.id) &&
+                item.branch_name === selectedBranch
+            );
+
+            const quantity = stock ? Number(stock.quantity) : 0;
+
+            const inStock = stock &&
+                stock.is_available === true &&
+                quantity > 0 &&
+                product.is_available !== false;
+
+            const status = inStock
+                ? '<span class="text-green-400">In Stock</span>'
+                : '<span class="text-red-400">Out of Stock</span>';
 
             const priceText = price !== null && price !== undefined && price !== ''
                 ? 'AED ' + safeText(price)
@@ -647,8 +694,14 @@ async function loadNaseefProducts() {
                     <p class="text-xs text-neutral-400 mb-2">
                         Category: ${safeText(category)}
                     </p>
+                    <p class="text-xs mb-2">
+                        Availability: ${status}
+                    </p>
+                    <p class="text-xs text-neutral-400 mb-2">
+                        Quantity: ${quantity}
+                    </p>
                     <p class="text-xs text-neutral-500">
-                        Branches: ${safeText(branches || 'To be updated')}
+                        Branch: ${safeText(selectedBranch)}
                     </p>
                 </div>
             `;
@@ -660,9 +713,18 @@ async function loadNaseefProducts() {
     searchInput.addEventListener('input', () => {
         displayProducts(searchInput.value);
     });
+
+    branchSelect.addEventListener('change', () => {
+        displayProducts(searchInput.value);
+    });
+
+    availableOnly.addEventListener('change', () => {
+        displayProducts(searchInput.value);
+    });
 }
 
 loadNaseefProducts();
+
 
 </script>
 
