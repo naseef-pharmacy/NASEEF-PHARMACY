@@ -554,19 +554,95 @@
     );
 
     console.log('NASEEF Pharmacy Supabase connected');
-    async function loadNaseefProducts() {
-   const { data, error } = await supabaseClient
-    .from('products')
-    .select('*');
+    
+async function loadNaseefProducts() {
+    const productList = document.getElementById('product-list');
+    const productCount = document.getElementById('product-count');
+    const searchInput = document.getElementById('product-search');
+
+    productList.innerHTML = '<p class="text-neutral-400">Loading products...</p>';
+
+    const { data, error } = await supabaseClient
+        .from('products')
+        .select('*');
+
     if (error) {
-        console.error('Product loading error:', JSON.stringify(error, null, 2));
+        console.error('Product loading error:', error);
+        productCount.textContent = 'Unable to load products.';
+        productList.innerHTML = '';
         return;
     }
 
     console.log('NASEEF Products loaded:', data);
+
+    function safeText(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char]));
+    }
+
+    function displayProducts(search = '') {
+        const filtered = data.filter(product => {
+            const name = product.name || product.product_name || '';
+            const category = product.category || '';
+            return (name + ' ' + category)
+                .toLowerCase()
+                .includes(search.toLowerCase());
+        });
+
+        productCount.textContent =
+            'Showing ' + filtered.length + ' of ' + data.length + ' products';
+
+        if (filtered.length === 0) {
+            productList.innerHTML =
+                '<p class="text-neutral-400">No matching products found.</p>';
+            return;
+        }
+
+        productList.innerHTML = filtered.map(product => {
+            const name = product.name || product.product_name || 'Unnamed product';
+            const price = product.price;
+            const category = product.category || 'General';
+            const branches = Array.isArray(product.branches)
+                ? product.branches.join(', ')
+                : (product.branches || '');
+
+            const priceText = price !== null && price !== undefined && price !== ''
+                ? 'AED ' + safeText(price)
+                : 'Price to be updated';
+
+            return `
+                <div class="bg-neutral-900 border border-white/10 rounded p-5">
+                    <h3 class="text-sm font-semibold text-white mb-3">
+                        ${safeText(name)}
+                    </h3>
+                    <p class="text-blue-400 font-medium mb-3">
+                        ${priceText}
+                    </p>
+                    <p class="text-xs text-neutral-400 mb-2">
+                        Category: ${safeText(category)}
+                    </p>
+                    <p class="text-xs text-neutral-500">
+                        Branches: ${safeText(branches || 'To be updated')}
+                    </p>
+                </div>
+            `;
+        }).join('');
+    }
+
+    displayProducts();
+
+    searchInput.addEventListener('input', () => {
+        displayProducts(searchInput.value);
+    });
 }
 
 loadNaseefProducts();
+
 </script>
 
 </body>
