@@ -610,9 +610,15 @@ async function loadNaseefProducts() {
         return;
     }
 
-    const { data: branchStocks, error: stockError } = await supabaseClient
+    // Load all branch-stock records in pages of 1,000
+let branchStocks = [];
+const pageSize = 1000;
+
+for (let start = 0; ; start += pageSize) {
+    const { data: stockPage, error: stockError } = await supabaseClient
         .from('branch_stock')
-        .select('product_id, branch_name, quantity, is_available');
+        .select('product_id, branch_name, quantity, is_available')
+        .range(start, start + pageSize - 1);
 
     if (stockError) {
         console.error('Branch stock loading error:', stockError);
@@ -620,6 +626,13 @@ async function loadNaseefProducts() {
         productList.innerHTML = '';
         return;
     }
+
+    branchStocks = branchStocks.concat(stockPage || []);
+
+    if (!stockPage || stockPage.length < pageSize) {
+        break;
+    }
+}
 
     console.log('NASEEF Products loaded:', products);
     console.log('NASEEF Branch stock loaded:', branchStocks);
