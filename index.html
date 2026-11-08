@@ -684,7 +684,190 @@ for (let start = 0; ; start += pageSize) {
             "'": '&#39;'
         }[char]));
     }
+// SHOPPING CART FUNCTIONALITY
 
+let cart = [];
+
+const branchWhatsApp = {
+    'NASEEF PHARMACY': '97165626780',
+    'AL NABBA PHARMACY': '97165635229',
+    'AL SIHA W AL AFIYA PHARMACY': '97165444193'
+};
+
+function renderCart() {
+    const cartItems = document.getElementById('cart-items');
+    const cartEmpty = document.getElementById('cart-empty');
+    const cartTotal = document.getElementById('cart-total');
+
+    cartEmpty.style.display = cart.length ? 'none' : 'block';
+
+    cartItems.innerHTML = cart.map(item => `
+        <div class="border-b border-white/10 pb-3 mb-3">
+            <p class="text-sm text-white">${safeText(item.name)}</p>
+            <p class="text-xs text-neutral-400">
+                AED ${item.price.toFixed(2)} each
+            </p>
+            <div class="flex items-center gap-3 mt-2">
+                <button data-cart-action="minus" data-id="${safeText(item.id)}"
+                    class="bg-neutral-800 text-white px-3 py-1">−</button>
+
+                <span class="text-white">${item.quantity}</span>
+
+                <button data-cart-action="plus" data-id="${safeText(item.id)}"
+                    class="bg-neutral-800 text-white px-3 py-1">+</button>
+
+                <button data-cart-action="remove" data-id="${safeText(item.id)}"
+                    class="text-red-400 text-sm">Remove</button>
+            </div>
+            <p class="text-blue-400 text-sm mt-2">
+                AED ${(item.price * item.quantity).toFixed(2)}
+            </p>
+        </div>
+    `).join('');
+
+    const total = cart.reduce(
+        (sum, item) => sum + item.price * item.quantity, 0
+    );
+
+    cartTotal.textContent = 'Total: AED ' + total.toFixed(2);
+}
+
+function addProductToCart(productId) {
+    const product = products.find(
+        item => String(item.id) === String(productId)
+    );
+
+    if (!product) return;
+
+    const stock = branchStocks.find(item =>
+        Number(item.product_id) === Number(product.id) &&
+        item.branch_name === branchSelect.value
+    );
+
+    const availableQty = stock &&
+        stock.is_available === true &&
+        product.is_available !== false
+        ? Number(stock.quantity) : 0;
+
+    if (availableQty < 1) {
+        showToast('Product unavailable at this branch.');
+        return;
+    }
+
+    const price = Number(product.price);
+
+    if (!Number.isFinite(price) || price < 0) {
+        showToast('Product price is not available.');
+        return;
+    }
+
+    const name = product.product_name || product.name || 'Product';
+
+    const existing = cart.find(
+        item => String(item.id) === String(product.id)
+    );
+
+    if (existing) {
+        if (existing.quantity >= availableQty) {
+            showToast('Maximum available stock reached.');
+            return;
+        }
+        existing.quantity++;
+    } else {
+        cart.push({
+            id: product.id,
+            name: name,
+            price: price,
+            quantity: 1,
+            availableQty: availableQty
+        });
+    }
+
+    renderCart();
+    // SEND ORDER TO THE SELECTED BRANCH
+
+document.getElementById('send-whatsapp-order').addEventListener('click', () => {
+
+    if (!cart.length) {
+        showToast('Please add products to your cart.');
+        return;
+    }
+
+    const customerName = document.getElementById('customer-name').value.trim();
+    const customerPhone = document.getElementById('customer-phone').value.trim();
+    const customerAddress = document.getElementById('customer-address').value.trim();
+
+    if (!customerName || !customerPhone || !customerAddress) {
+        showToast('Please enter your name, phone number and address.');
+        return;
+    }
+
+    const selectedBranch = branchSelect.value;
+    const phoneNumber = branchWhatsApp[selectedBranch];
+
+    const total = cart.reduce(
+        (sum, item) => sum + item.price * item.quantity, 0
+    );
+
+    const lines = [
+        'NEW WEBSITE ORDER - NASEEF PHARMACY',
+        'Branch: ' + selectedBranch,
+        'Customer: ' + customerName,
+        'Phone: ' + customerPhone,
+        'Delivery Address: ' + customerAddress,
+        '',
+        'ORDER ITEMS:'
+    ];
+
+    cart.forEach((item, index) => {
+        lines.push(
+            (index + 1) + '. ' + item.name +
+            ' x ' + item.quantity +
+            ' - AED ' + (item.price * item.quantity).toFixed(2)
+        );
+    });
+
+    lines.push('', 'Total: AED ' + total.toFixed(2));
+
+    const whatsappUrl = 'https://wa.me/' + phoneNumber +
+        '?text=' + encodeURIComponent(lines.join('\n'));
+
+    window.open(whatsappUrl, '_blank');
+});
+    showToast('Product added to cart.');
+}
+
+document.getElementById('product-list').addEventListener('click', event => {
+    const button = event.target.closest('[data-add-to-cart]');
+    if (button) {
+        addProductToCart(button.getAttribute('data-add-to-cart'));
+    }
+});
+
+document.getElementById('cart-items').addEventListener('click', event => {
+    const button = event.target.closest('[data-cart-action]');
+    if (!button) return;
+
+    const id = button.getAttribute('data-id');
+    const item = cart.find(entry => String(entry.id) === String(id));
+
+    if (!item) return;
+
+    const action = button.getAttribute('data-cart-action');
+
+    if (action === 'plus' && item.quantity < item.availableQty) {
+        item.quantity++;
+    } else if (action === 'minus') {
+        item.quantity--;
+    } else if (action === 'remove') {
+        item.quantity = 0;
+    }
+
+    cart = cart.filter(entry => entry.quantity > 0);
+    renderCart();
+});
+
+renderCart();
     function displayProducts(search = '') {
         const selectedBranch = branchSelect.value;
 
@@ -764,9 +947,13 @@ for (let start = 0; ; start += pageSize) {
                     <p class="text-xs text-neutral-400 mb-2">
                         Quantity: ${quantity}
                     </p>
-                    <p class="text-xs text-neutral-500">
-                        Branch: ${safeText(selectedBranch)}
-                    </p>
+                    <p class="text-xs text-neutral-500 mb-4">
+    Branch: ${safeText(selectedBranch)}
+</p>
+
+${inStock && Number.isFinite(Number(price)) && Number(price) >= 0
+    ? '<button type="button" data-add-to-cart="' + safeText(product.id) + '" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded px-4 py-3">Add to Cart</button>'
+    : '<button type="button" disabled class="w-full bg-neutral-800 text-neutral-500 text-sm rounded px-4 py-3">Currently Unavailable</button>'}
                 </div>
             `;
         }).join('');
@@ -779,8 +966,10 @@ for (let start = 0; ; start += pageSize) {
     });
 
     branchSelect.addEventListener('change', () => {
-        displayProducts(searchInput.value);
-    });
+    cart = [];
+    renderCart();
+    displayProducts(searchInput.value);
+});
 
     availableOnly.addEventListener('change', () => {
         displayProducts(searchInput.value);
